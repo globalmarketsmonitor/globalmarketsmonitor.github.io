@@ -1,0 +1,1 @@
+# globalmarketsmonitor.github.io
