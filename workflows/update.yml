@@ -1,0 +1,91 @@
+# Builds the data from every source, checks it, and publishes the site on GitHub Pages.
+# Every 10 minutes in Indian market hours (Mon–Fri), every 30 minutes otherwise; also when you press "Run workflow" on the
+# Actions tab and whenever you upload a change.
+name: Update data and publish
+
+on:
+  schedule:
+    - cron: '3,13,23,33,43,53 3-10 * * 1-5' # 08:33–16:23 IST, Monday to Friday (cron times are UTC)
+    - cron: '8,38 0-2,11-23 * * 1-5' # weekdays outside market hours
+    - cron: '8,38 * * * 0,6' # weekends
+  workflow_dispatch: # "Run workflow" on the Actions tab, or the site's Refresh button (with an owner token)
+    inputs:
+      refresh:
+        description: Re-read every source now, ignoring their usual schedules
+        type: boolean
+        default: true
+  push:
+    branches: [main]
+
+permissions:
+  contents: write # store the data for the next run on the data-state branch
+  pages: write # publish the site
+  id-token: write # required by GitHub Pages deployments
+  actions: write # keep the schedule switched on (last step)
+
+# One run at a time, so two runs never write the stored data at once.
+concurrency:
+  group: update-and-publish
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    env:
+      STATE_DIR: state
+      REFRESH: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh && 'all' || '' }}
+      REPO_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+      # Optional, as on the private site: add them under Settings → Secrets and variables → Actions to switch these on.
+      FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+      SIBLIS_API_KEY: ${{ secrets.SIBLIS_API_KEY }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Restore what the last run stored
+        run: |
+          if git ls-remote --exit-code --heads "$REPO_URL" data-state > /dev/null; then
+            git clone --quiet --depth 1 --branch data-state "$REPO_URL" state
+            rm -rf state/.git
+          else
+            echo "No stored data yet: this run reads everything from the sources."
+            mkdir -p state
+          fi
+
+      - name: Read every source and check every figure
+        run: node scripts/build.mjs
+
+      # Reached only if the build succeeded, so a failed run never overwrites good data.
+      - name: Store the data for the next run
+        run: |
+          cd state
+          git init --quiet --initial-branch=data-state
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit --quiet -m "Data after run ${GITHUB_RUN_NUMBER}"
+          git push --quiet --force "$REPO_URL" data-state
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: public
+
+      - id: deploy
+        uses: actions/deploy-pages@v5
+
+      # GitHub switches off scheduled runs in a public repository after 60 days without activity. Re-enabling the
+      # workflow restarts that count, so the updates never stop on their own.
+      - name: Keep the schedule switched on
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --silent -X PUT "repos/${GITHUB_REPOSITORY}/actions/workflows/update.yml/enable" || echo "::warning::Could not refresh the schedule. If updates stop, open the Actions tab and press Enable workflow."

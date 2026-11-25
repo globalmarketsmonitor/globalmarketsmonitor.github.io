@@ -1,0 +1,13 @@
+{
+  "name": "markets-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Global Markets Monitor, public edition: the same dashboard as the private site, built every 10–30 minutes by GitHub Actions and published on GitHub Pages, with every feed checked for freshness and plausibility.",
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

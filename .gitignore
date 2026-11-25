@@ -1,0 +1,5 @@
+# Built by the update job, never committed: stored data lives on the data-state branch; the data files are published with the site.
+state/
+public/data/
+node_modules/
+.DS_Store
