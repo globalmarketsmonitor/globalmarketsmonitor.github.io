@@ -309,7 +309,10 @@ window.PEInvest = function (ctx) {
     const ys = d3.scaleLinear().domain(d3.extent(data, (p) => p.v)).nice().range([ih, 0]);
     const g = svg.append('g').attr('transform', `translate(${M.l},${M.t})`);
     g.append('g').attr('class', 'grid').call(d3.axisLeft(ys).ticks(4).tickSize(-iw).tickFormat('')).call((s) => s.select('.domain').remove());
-    g.append('g').attr('class', 'axis').attr('transform', `translate(0,${ih})`).call(d3.axisBottom(xs).ticks(4).tickFormat(d3.utcFormat("%b '%y")));
+    // Label every quarter, half-year or year: whichever fits without the labels running into each other (~50 px each).
+    const months = (data.at(-1).d - data[0].d) / (30.44 * 864e5), fit = Math.max(2, Math.floor(iw / 50));
+    const step = [3, 6, 12, 24].find((m) => months / m <= fit) || 24;
+    g.append('g').attr('class', 'axis').attr('transform', `translate(0,${ih})`).call(d3.axisBottom(xs).ticks(d3.utcMonth.every(step)).tickFormat(d3.utcFormat(step >= 12 ? '%Y' : "%b '%y")).tickSizeOuter(0));
     g.append('g').attr('class', 'axis').call(d3.axisLeft(ys).ticks(4).tickFormat(d3.format('~s')));
     g.append('path').datum(ma).attr('fill', 'none').attr('stroke', 'var(--ref)').attr('stroke-dasharray', '4 3').attr('d', d3.line().x((p) => xs(p.d)).y((p) => ys(p.v)));
     g.append('path').datum(data).attr('fill', 'none').attr('stroke', 'var(--c-n500)').attr('stroke-width', 1.8).attr('d', d3.line().x((p) => xs(p.d)).y((p) => ys(p.v)));

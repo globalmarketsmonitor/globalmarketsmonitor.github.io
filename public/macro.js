@@ -519,7 +519,9 @@ window.PEMacro = function (ctx) {
       const y = d3.scaleLinear().domain([ext[0] - pad, ext[1] + pad]).range([ih, 0]).nice();
       const g = svg.append('g').attr('transform', `translate(${M.l},${M.t})`);
       g.append('g').attr('class', 'grid').call(d3.axisLeft(y).ticks(5).tickSize(-iw).tickFormat('')).call((s) => s.select('.domain').remove());
-      g.append('g').attr('class', 'axis').attr('transform', `translate(0,${ih})`).call(d3.axisBottom(x).tickFormat((d) => (d === 'Now' ? 'Now' : d3.utcFormat("%b '%y")(parseD(d)))));
+      // On narrow screens label every second (or third) meeting so the dates never overlap; "Now" and the last always show.
+      const every = Math.max(1, Math.ceil((pts.length * 50) / iw)), shown = pts.map((p) => p.date).filter((d, i, a) => i === a.length - 1 || (i % every === 0 && a.length - 1 - i >= every));
+      g.append('g').attr('class', 'axis').attr('transform', `translate(0,${ih})`).call(d3.axisBottom(x).tickValues(shown).tickFormat((d) => (d === 'Now' ? 'Now' : d3.utcFormat("%b '%y")(parseD(d)))));
       g.append('g').attr('class', 'axis').call(d3.axisLeft(y).ticks(5).tickFormat((v) => v.toFixed(2) + '%'));
       g.append('line').attr('x1', 0).attr('x2', iw).attr('y1', y(rp.effr)).attr('y2', y(rp.effr)).attr('stroke', 'var(--ref)').attr('stroke-dasharray', '4 4');
       g.append('path').datum(pts).attr('fill', 'none').attr('stroke', 'var(--c-n500)').attr('stroke-width', 2).attr('d', d3.line().curve(d3.curveStepAfter).x((p) => x(p.date)).y((p) => y(p.rate)));
