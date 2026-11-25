@@ -542,6 +542,7 @@ ul.mf-checks li.ok i { color: var(--good); } ul.mf-checks li.bad i { color: var(
 .ds-state.ok { background: var(--good-bg); color: var(--good); }
 .ds-state.stale { background: var(--amber-bg); color: var(--amber); }
 .ds-state.failed { background: var(--bad-bg); color: var(--bad); }
+.ds-state.off { background: var(--grid); color: var(--muted); }
 #ds-prov a, .foot a { color: var(--c-n500); }
 #tbl-ds td.ds-feed { white-space: normal; }
 #tbl-ds .ds-name { display: block; }

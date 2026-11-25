@@ -161,7 +161,11 @@ export function audit(D, { meta = {} } = {}) {
   };
   for (const [gid, name, source, test] of groups) {
     const ids = Object.keys(I).filter((k) => test(I[k].src || ''));
-    if (gid === 'fred' && !ids.length) continue; // optional source
+    if (gid === 'fred' && !ids.length && !process.env.FRED_API_KEY) {
+      // Optional, switched on by a free key. Listed anyway, so the table names every source the site can use.
+      feeds.push({ id: 'macro-fred', name, source, file: 'macro', state: 'off', asOf: null, asOfText: null, checks: [{ ok: true, info: true, detail: 'Switched off: needs the free FRED_API_KEY secret (see README). Until then the Liquidity & risk tab says so, and credit appetite is read from the HYG/IEF ratio.' }] });
+      continue;
+    }
     feed('macro-' + gid, name, source, 'macro', (b, add, f) => {
       if (!ids.length) { add(false, 'No indicators from this source in this update'); return; }
       if (b.stale) add(false, `Too many sources failed at once; the copy saved ${human(b.savedAt) || 'earlier'} is shown`);
@@ -255,5 +259,6 @@ export function audit(D, { meta = {} } = {}) {
   }
 
   const checks = feeds.flatMap((f) => f.checks).filter((c) => !c.info);
-  return { at: new Date().toISOString(), nseOpen, totals: { feeds: feeds.length, ok: feeds.filter((f) => f.state === 'ok').length, checks: checks.length, passed: checks.filter((c) => c.ok).length }, feeds };
+  const on = feeds.filter((f) => f.state !== 'off');
+  return { at: new Date().toISOString(), nseOpen, totals: { feeds: on.length, ok: on.filter((f) => f.state === 'ok').length, checks: checks.length, passed: checks.filter((c) => c.ok).length }, feeds };
 }

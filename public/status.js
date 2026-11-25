@@ -10,7 +10,7 @@
   const ago = (iso) => { const m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / MIN)); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 48 * 60 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`; };
   // Updates run every 10 minutes in Indian market hours and every 30 minutes otherwise; GitHub sometimes starts them late.
   const marketHours = () => { const t = new Date(Date.now() + 5.5 * H), d = t.getUTCDay(), m = t.getUTCHours() * 60 + t.getUTCMinutes(); return d >= 1 && d <= 5 && m >= 9 * 60 && m <= 16 * 60; };
-  const LABEL = { ok: 'Up to date', stale: 'Needs attention', failed: 'Not available' };
+  const LABEL = { ok: 'Up to date', stale: 'Needs attention', failed: 'Not available', off: 'Switched off' };
   let S = null, loadErr = null, open = new Set();
 
   function frame() {
@@ -31,7 +31,7 @@
     banner.className = 'pub-banner ' + (msgs.some(([k]) => k === 'bad') ? 'bad' : 'warn');
     banner.replaceChildren(...msgs.map(([, t]) => el('p', null, t)));
     if (!S) return;
-    const T = S.totals, attention = S.feeds.filter((f) => f.state !== 'ok');
+    const T = S.totals, attention = S.feeds.filter((f) => f.state !== 'ok' && f.state !== 'off');
     badge.hidden = false;
     badge.className = 'pill pub-badge ' + (attention.length ? 'warn' : 'ok');
     badge.replaceChildren(el('span', 'dot'), el('span', null, attention.length ? `${T.checks - T.passed} of ${T.checks} checks need attention (${attention.length} feed${attention.length > 1 ? 's' : ''})` : `All ${T.checks} checks passed`));
@@ -47,13 +47,14 @@
     const tb = el('tbody');
     for (const f of S.feeds) {
       const gated = f.checks.filter((c) => !c.info), passed = gated.filter((c) => c.ok).length, tr = el('tr', 'ds-row');
+      const counted = gated.length ? `${passed} of ${gated.length}` : '—'; // a switched-off source has nothing to check
       // On a phone only the first cell shows; its second line carries the state, date and checks.
       const name = el('td', 'left ds-feed'); name.append(el('span', 'ds-name', f.name));
-      const sub = el('span', 'ds-sub'); sub.append(el('span', 'ds-state ' + f.state, LABEL[f.state] || f.state), ` ${f.asOfText || '—'} · ${passed} of ${gated.length} checks`);
+      const sub = el('span', 'ds-sub'); sub.append(el('span', 'ds-state ' + f.state, LABEL[f.state] || f.state), gated.length ? ` ${f.asOfText || '—'} · ${counted} checks` : ` ${f.asOfText || '—'}`);
       name.append(sub);
       tr.append(name, el('td', 'left muted ds-wide', f.source), el('td', 'left ds-wide', f.asOfText || f.asOf || '—'));
       const st = el('td', 'left ds-wide'); st.append(el('span', 'ds-state ' + f.state, LABEL[f.state] || f.state)); tr.append(st);
-      tr.append(el('td', 'ds-wide', `${passed} of ${gated.length}`));
+      tr.append(el('td', 'ds-wide', counted));
       tr.tabIndex = 0; tr.setAttribute('aria-expanded', open.has(f.id) ? 'true' : 'false');
       const toggle = () => { open.has(f.id) ? open.delete(f.id) : open.add(f.id); table(); };
       tr.onclick = toggle; tr.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } };
