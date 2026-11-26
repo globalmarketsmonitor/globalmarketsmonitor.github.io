@@ -1,6 +1,8 @@
 # Builds the data from every source, checks it, and publishes the site on GitHub Pages.
 # Every 10 minutes in Indian market hours (Mon–Fri), every 30 minutes otherwise; also when you press "Run workflow" on the
 # Actions tab and whenever you upload a change.
+# Publishing: the finished site is pushed to the gh-pages branch, and GitHub Pages serves that branch
+# (Settings → Pages → Build and deployment → Source: Deploy from a branch → gh-pages, / (root)).
 name: Update data and publish
 
 on:
@@ -18,9 +20,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: write # store the data for the next run on the data-state branch
-  pages: write # publish the site
-  id-token: write # required by GitHub Pages deployments
+  contents: write # store the data on the data-state branch and publish the site on the gh-pages branch
   actions: write # keep the schedule switched on (last step)
 
 # One run at a time, so two runs never write the stored data at once.
@@ -32,9 +32,6 @@ jobs:
   update:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
     env:
       STATE_DIR: state
       REFRESH: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh && 'all' || '' }}
@@ -73,14 +70,19 @@ jobs:
           git commit --quiet -m "Data after run ${GITHUB_RUN_NUMBER}"
           git push --quiet --force "$REPO_URL" data-state
 
-      - uses: actions/configure-pages@v6
-
-      - uses: actions/upload-pages-artifact@v4
-        with:
-          path: public
-
-      - id: deploy
-        uses: actions/deploy-pages@v5
+      # Also reached only if the build succeeded, so visitors never see a half-built site. GitHub Pages republishes the
+      # branch within a minute or two of each push.
+      - name: Publish the site
+        run: |
+          cd public
+          touch .nojekyll # serve the files exactly as built, without GitHub's Jekyll processing
+          git init --quiet --initial-branch=gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit --quiet -m "Site after run ${GITHUB_RUN_NUMBER}"
+          git push --quiet --force "$REPO_URL" gh-pages
+          echo "Published to the gh-pages branch; https://${GITHUB_REPOSITORY_OWNER}.github.io/ shows it within a minute or two." >> "$GITHUB_STEP_SUMMARY"
 
       # GitHub switches off scheduled runs in a public repository after 60 days without activity. Re-enabling the
       # workflow restarts that count, so the updates never stop on their own.
