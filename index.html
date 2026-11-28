@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Global Markets Monitor</title>
+<meta name="description" content="Live trailing PE for Nifty 500, Midcap 150, Smallcap 250 and Microcap 250 against 5-year history, plus developed and emerging markets.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563EB'/%3E%3Cpath d='M7 22l6-7 5 4 7-9' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script>try{const t=localStorage.getItem('pe-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo" aria-hidden="true"></span>
+    <div>
+      <h1>Global Markets Monitor</h1>
+      <p class="sub">Macro regime, liquidity, risk and valuations · India and global</p>
+    </div>
+  </div>
+  <div class="controls">
+    <span id="status" class="pill" title="Data status"><i class="dot"></i><span id="status-text">Loading…</span></span>
+    <span id="updated" class="muted small"></span>
+    <label class="switch" title="Load newly published data automatically. The data is rebuilt every 10 minutes in Indian market hours and every 30 minutes otherwise">
+      <input type="checkbox" id="auto" checked><span class="track"><span class="thumb"></span></span><span class="small">Auto <span id="countdown" class="mono"></span></span>
+    </label>
+    <button id="refresh" class="btn" type="button" title="Load the most recently published data"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3"/></svg>Refresh</button>
+    <button id="theme" class="btn icon" type="button" aria-label="Toggle dark mode"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 9.5A5.5 5.5 0 0 1 6.5 3 5.5 5.5 0 1 0 13 9.5z"/></svg></button>
+  </div>
+</header>
+<div class="pub-strip" id="pub-strip">
+  <span class="pill" id="pub-checked" title="When the official and market sources were last read"><span class="dot"></span><span>Checking data…</span></span>
+  <a class="pill pub-badge" id="pub-checks" href="#data-status" hidden></a>
+  <a class="pub-link small" href="#data-status">Data status</a>
+</div>
+<div class="pub-banner" id="pub-banner" role="status" hidden></div>
+
+<nav class="tabs" id="tabs" aria-label="Sections">
+  <a href="#overview" data-tab="overview">Overview</a>
+  <a href="#markets" data-tab="markets">World markets</a>
+  <a href="#beyond" data-tab="beyond">Beyond Equities</a>
+  <a href="#valuations" data-tab="valuations">Valuations</a>
+  <a href="#macro" data-tab="macro">Growth &amp; inflation</a>
+  <a href="#liquidity" data-tab="liquidity">Liquidity &amp; risk</a>
+  <a href="#india" data-tab="india">India</a>
+  <a href="#funds" data-tab="funds">Mutual funds</a>
+  <a href="#view" data-tab="view">Investment view</a>
+  <a href="#calendar" data-tab="calendar">Calendar</a>
+</nav>
+<div class="lensbar" id="lensbar" hidden>
+  <span class="lb-label">Viewpoint</span>
+  <div class="seg lens-seg" role="group" aria-label="Investor viewpoint"><button data-v="fii" class="on" type="button">Foreign institution · USD</button><button data-v="inr" type="button">Indian institution · INR</button></div>
+  <span class="lb-note muted small">Returns, benchmarks, cash hurdle and model weights follow this choice.</span>
+</div>
+
+<main>
+<div class="tab" id="tab-overview">
+  <section class="block">
+    <div class="block-head row"><h2>Market regime</h2><span class="muted small" id="regime-asof"></span></div>
+    <div class="regime" id="regime"><div class="pillar skeleton"></div><div class="pillar skeleton"></div><div class="pillar skeleton"></div><div class="pillar skeleton"></div><div class="pillar skeleton"></div></div>
+  </section>
+  <section class="block">
+    <div class="block-head"><h2>Cross-asset snapshot</h2><p class="muted small">Change over 1 week · line = last 2 years</p></div>
+    <div class="tiles" id="tiles"></div>
+  </section>
+  <section class="grid2">
+    <div class="block">
+      <div class="block-head"><h2>What changed this week</h2><p class="muted small">Largest weekly moves relative to each indicator's normal weekly range (10-year history).</p></div>
+      <div class="panel flush"><div id="changed"></div></div>
+    </div>
+    <div class="block">
+      <div class="block-head row"><h2>Alerts</h2><span class="muted small" id="alert-count"></span></div>
+      <div class="panel flush"><div id="alerts"></div></div>
+    </div>
+  </section>
+  <section class="block">
+    <div class="block-head row"><h2>Daily brief</h2><span class="muted small" id="brief-status"></span></div>
+    <div class="panel" id="brief"><div class="empty">Loading the brief…</div></div>
+  </section>
+  <section class="block">
+    <div class="block-head row">
+      <h2>Pre-trade checklist</h2>
+      <div class="seg" id="seg-market"><button data-v="US" class="on">US</button><button data-v="Europe">Europe</button><button data-v="Japan">Japan</button><button data-v="China">China</button><button data-v="India">India</button><button data-v="EM">EM</button></div>
+    </div>
+    <div class="panel" id="checklist"></div>
+  </section>
+  <section class="grid2">
+    <div class="block">
+      <div class="block-head"><h2>Valuation summary</h2></div>
+      <div class="insights" id="insights" aria-live="polite"><div class="insight skeleton"></div><div class="insight skeleton"></div></div>
+    </div>
+    <div class="block">
+      <div class="block-head row"><h2>Upcoming central bank decisions</h2><a class="small" href="#calendar">Full calendar →</a></div>
+      <div class="panel flush"><div id="calendar"></div></div>
+    </div>
+  </section>
+</div>
+
+<div class="tab" id="tab-markets" hidden>
+  <section class="block">
+    <div class="block-head row">
+      <div><h2>World markets heatmap</h2><p class="muted small">Returns in local currency. Hover a tile for every period. Prices from Yahoo Finance (delayed up to 15 minutes).</p></div>
+      <div class="toolbar">
+        <div class="seg" id="seg-heat"><button data-v="d1" class="on">1D</button><button data-v="w1">1W</button><button data-v="m1">1M</button><button data-v="m3">3M</button><button data-v="ytd">YTD</button><button data-v="y1">1Y</button></div>
+        <label class="check"><input type="checkbox" id="heat-sort"> Sort by return</label>
+      </div>
+    </div>
+    <div id="heat"></div>
+  </section>
+  <section class="block">
+    <div class="block-head"><h2>India sectors and factors</h2><p class="muted small">NSE indices, live in market hours. NSE publishes 1D, 1W, 1M and 1Y changes; for 3M and YTD the tiles show 1M. Labels show trailing PE.</p></div>
+    <div id="heat-india"></div>
+  </section>
+  <section class="block">
+    <div class="block-head"><h2>Fed path priced by futures</h2><p class="muted small">Overnight rate implied after each FOMC meeting, solved from 30-day fed funds futures (CME, via Yahoo). Similar to CME FedWatch, without its probability split.</p></div>
+    <div class="cards" id="fed-cards"></div>
+    <div class="panel"><div class="chart" id="fed-chart" style="height:260px"></div></div>
+    <div class="panel flush"><div class="scroll"><table class="tbl" id="tbl-fed"></table></div></div>
+  </section>
+  <section class="block">
+    <div class="block-head"><h2>Global 10-year government bond yields</h2><p class="muted small">Official sources: US Treasury, Deutsche Bundesbank, Bank of England, Japan Ministry of Finance. Real yield = 10-year yield − latest CPI. India from a daily market quote feed (CNBC), with a hand-entered fallback.</p></div>
+    <div class="panel flush"><div class="scroll"><table class="tbl" id="tbl-yields"></table></div></div>
+  </section>
+</div>
+
+<div class="tab" id="tab-beyond" hidden>
+  <section class="block">
+    <div class="block-head">
+      <h2>Beyond Equities</h2><p class="muted small" id="alt-asof">Commodities, real assets, credit, private-market proxies, hedge-fund strategies and crypto, in one place.</p>
+    </div>
+    <div class="ivcall" id="alt-call"></div>
+  </section>
+  <section class="block">
+    <div class="block-head"><h2>Scorecard — most to least attractive</h2><p class="muted small">22 assets ranked by the 3–12 month view. Click a row for the signals, the 5-year return estimate, a 2-year chart and sources.</p></div>
+    <div class="panel flush"><div class="scroll"><table class="tbl ivt" id="tbl-alts"></table></div></div>
+  </section>
+  <section class="block">
+    <div class="block-head"><h2>Setups to watch early</h2><p class="muted small">Assets that are cheap or washed out and have started to turn — the stage before a move is obvious — and stretched ones turning down. Each comes with what would confirm or cancel it.</p></div>
+    <div class="panel" id="alt-setups"></div>
+  </section>
+  <section class="grid2">
+    <div class="block"><div class="block-head"><h2>Where the money is going</h2><p class="muted small" id="alt-flows-note">Speculative futures flows (CFTC).</p></div><div class="panel"><div class="chart" id="alt-flows" style="height:260px"></div></div></div>
+    <div class="block"><div class="block-head"><h2>Futures curves and carry</h2><p class="muted small">Front contract vs the one about 12 months out (CME, NYMEX, COMEX and CBOT via Yahoo). Carry is what a long holder earns (+) or pays (−) a year from rolling.</p></div><div class="panel flush"><div class="scroll"><table class="tbl" id="tbl-curves"></table></div></div></div>
+  </section>
+  <section class="block">
+    <div class="block-head"><h2>How they are doing</h2><p class="muted small">Total returns (distributions reinvested) in the lens currency. Futures are rolling front-month prices.</p></div>
+    <div class="panel flush"><div class="scroll"><table class="tbl heatt" id="tbl-altperf"></table></div></div>
+  </section>
+  <section class="block">
+    <div class="block-head"><h2>What each asset protects against</h2><p class="muted small">Average weekly return in the worst 10% of weeks for each risk, 2016–2026. Green held up; red fell. Hover for the number of weeks and hit rate.</p></div>
+    <div class="panel flush"><div class="scroll"><table class="tbl heatt" id="tbl-protect"></table></div></div>
+  </section>
+  <section class="block">
+    <div class="block-head"><h2>Market depth and access</h2><p class="muted small" id="depth-note"></p></div>
+    <div class="panel flush"><div class="scroll"><table class="tbl" id="tbl-depth"></table></div></div>
+  </section>
+</div>
+
+<div class="tab" id="tab-valuations" hidden>
+  <section class="block">
+    <div class="block-head">
+      <h2>Indian indices — live valuation</h2>
+      <p class="muted small">Click a card to chart it. Percentile = share of trading days in the last 5 years with a lower PE (longer windows below).</p>
+    </div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section class="block">
+    <div class="block-head row">
+      <h2 id="hist-title">Valuation history</h2>
+      <div class="toolbar">
+        <div class="seg" id="seg-index" role="tablist" aria-label="Index"></div>
+        <div class="seg" id="seg-metric" aria-label="Metric">
+          <button data-v="pe" class="on">PE</button><button data-v="pb">P/B</button><button data-v="dy">Div yield</button><button data-v="ey">Earnings yield</button>
+        </div>
+        <div class="seg" id="seg-period" aria-label="Period">
+          <button data-v="1">1Y</button><button data-v="3">3Y</button><button data-v="5" class="on">5Y</button><button data-v="10">10Y</button><button data-v="max">Max</button>
+        </div>
+        <label class="check"><input type="checkbox" id="bands" checked> Median ±1σ</label>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="legend" id="hist-legend"></div>
+      <div class="chart" id="hist-chart" style="height:380px"></div>
+      <p class="muted small" id="hist-note"></p>
+    </div>
+  </section>
+
+  <section class="grid2">
+    <div class="block">
+      <div class="block-head"><h2>Where each tier sits in its 5-year range</h2><p class="muted small">Band = 5Y low–high · tick = median · dot = live PE</p></div>
+      <div class="panel"><div class="chart" id="range-chart" style="height:260px"></div></div>
+    </div>
+    <div class="block">
+      <div class="block-head row"><h2>PE premium to Nifty 500</h2>
+        <div class="seg small" id="seg-prem"><button data-v="1">1Y</button><button data-v="3">3Y</button><button data-v="5" class="on">5Y</button></div>
+      </div>
+      <div class="panel"><div class="legend" id="prem-legend"></div><div class="chart" id="prem-chart" style="height:236px"></div></div>
+    </div>
+  </section>
+
+
+  <section class="block">
+    <div class="block-head"><h2>How rich is each tier over longer history?</h2><p class="muted small">Percentile of today's PE within each window, and the window's median PE. A 5-year view can mislead: 2021–22 earnings were distorted by COVID.</p></div>
+    <div class="panel flush"><div class="scroll"><table class="tbl" id="tbl-long"></table></div></div>
+  </section>
+
+  <section class="block">
+    <div class="block-head"><h2>Equity risk premium — are stocks paying enough over bonds?</h2><p class="muted small">Earnings yield (1 ÷ PE) minus the real 10-year government bond yield. Higher = equities cheaper relative to bonds.</p></div>
+    <div class="cards" id="erp-cards"></div>
+  </section>
+
+  <section class="block">
+    <div class="block-head row">
+      <h2>Valuation table — Indian indices</h2>
+      <button class="btn ghost small" id="csv-india" type="button">Download CSV</button>
+    </div>
+    <div class="panel flush"><div class="scroll"><table class="tbl" id="tbl-india"></table></div></div>
+    <p class="muted small">Year-end columns = PE on the last trading day of December. Z-score = (live − 5Y mean) ÷ 5Y std dev.</p>
+  </section>
+
+  <section class="block">
+    <div class="block-head row">
+      <h2>Global markets</h2>
+      <div class="toolbar">
+        <div class="seg" id="seg-group"><button data-v="all" class="on">All</button><button data-v="Developed">Developed</button><button data-v="Emerging">Emerging</button></div>
+        <div class="seg" id="seg-gview"><button data-v="live" class="on">Live PE (ETF)</button><button data-v="vs">vs 5Y avg</button></div>
+        <button class="btn ghost small" id="csv-global" type="button">Download CSV</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="legend" id="g-legend"></div>
+      <div class="chart" id="g-chart" style="min-height:300px"></div>
+      <p class="muted small" id="g-note"></p>
+    </div>
+    <div class="panel flush" style="margin-top:12px"><div class="scroll"><table class="tbl" id="tbl-global"></table></div></div>
+  </section>
+
+</div>
+
+<div class="tab" id="tab-macro" hidden>
+  <section class="block">
+    <div class="block-head"><h2>Growth</h2><p class="muted small">Market-based growth signals update weekly; OECD leading indicators are monthly and published with a lag.</p></div>
+    <div class="icards" id="cards-growth"></div>
+  </section>
+  <section class="block">
+    <div class="block-head"><h2>Inflation and policy by economy</h2><p class="muted small">Headline CPI (year on year, BIS) against the central bank policy rate. Real rate = policy rate − CPI; positive means policy is restrictive.</p></div>
+    <div class="panel flush"><div class="scroll"><table class="tbl" id="tbl-countries"></table></div></div>
+  </section>
+  <section class="block">
+    <div class="block-head"><h2>CPI inflation — 2 years</h2></div>
+    <div class="panel"><div class="legend" id="cpi-legend"></div><div class="chart" id="cpi-chart" style="height:280px"></div></div>
+  </section>
+  <section class="block">
+    <div class="block-head"><h2>Inflation expectations and energy</h2></div>
+    <div class="icards" id="cards-inflation"></div>
+  </section>
+</div>
+
+<div class="tab" id="tab-liquidity" hidden>
+  <section class="block">
+    <div class="block-head"><h2>US Treasury yield curve</h2><p class="muted small">The world's discount rate. An inverted curve (short above long) has preceded most US recessions; the re-steepening after inversion is often the warning.</p></div>
+    <div class="panel"><div class="legend" id="curve-legend"></div><div class="chart" id="curve-chart" style="height:260px"></div></div>
+  </section>
+  <section class="block">
+    <div class="block-head"><h2>Rates, dollar and liquidity</h2></div>
+    <div class="icards" id="cards-liquidity"></div>
+    <p class="muted small" id="fred-note"></p>
+  </section>
+  <section class="block">
+    <div class="block-head"><h2>Risk and sentiment</h2></div>
+    <div class="icards" id="cards-risk"></div>
+  </section>
+  <section class="block">
+    <div class="block-head"><h2>Positioning — who is crowded?</h2><p class="muted small">CFTC Commitments of Traders, weekly (positions as of Tuesday, published Friday). Speculators' net position as % of open interest: leveraged funds for financial futures, managed money for commodities. Bar = 3-year range, dot = now.</p></div>
+    <div class="panel"><div class="chart" id="cot-chart" style="height:360px"></div></div>
+  </section>
+  <section class="block">
+    <div class="block-head"><h2>Correlation and volatility regime</h2><p class="muted small">Rolling 26-week correlation of weekly returns. When stocks and bonds rise and fall together (above zero), bonds stop hedging an equity portfolio.</p></div>
+    <div class="cards" id="corr-cards"></div>
+    <div class="panel"><div class="legend" id="corr-legend"></div><div class="chart" id="corr-chart" style="height:260px"></div></div>
+  </section>
+  <section class="block">
+    <div class="block-head"><h2>Global equities</h2></div>
+    <div class="icards" id="cards-equities"></div>
+  </section>
+</div>
+
+<div class="tab" id="tab-india" hidden>
+  <section class="block">
+    <div class="block-head"><h2>India macro dashboard</h2><p class="muted small">What a foreign investor watches: rates, inflation, currency, oil and volatility.</p></div>
+    <div class="icards" id="cards-india"></div>
+  </section>
+  <section class="grid2">
+    <div class="block">
+      <div class="block-head"><h2>Who is buying? FII vs DII cash flows</h2><p class="muted small">₹ crore, NSE provisional data. History builds up daily once the site is live.</p></div>
+      <div class="panel"><div id="flows"></div></div>
+    </div>
+    <div class="block">
+      <div class="block-head"><h2>Earnings momentum</h2><p class="muted small">Index-level trailing EPS implied by NSE PE. Valuation premiums hold only while earnings keep growing.</p></div>
+      <div class="panel flush"><div class="scroll"><table class="tbl" id="tbl-eps"></table></div></div>
+    </div>
+  </section>
+</div>
+
+<div class="tab" id="tab-funds" hidden>
+  <section class="block">
+    <div class="block-head"><h2>Mutual funds: where investors’ money is going</h2><p class="muted small" id="mf-asof">Loading mutual fund data…</p></div>
+  </section>
+  <div id="mf-body" hidden>
+    <section class="block">
+      <div class="icards" id="mf-kpis"></div>
+      <nav class="subnav" aria-label="Mutual fund sections"><a href="#mf-where-sec">Where the money went</a><a href="#mf-map-sec">Flow map</a><a href="#mf-sip-sec">SIPs</a><a href="#mf-mood-sec">Risk appetite</a><a href="#mf-gains-sec">New money vs gains</a><a href="#mf-red-sec">Redemptions</a><a href="#mf-folios-sec">New investors</a><a href="#mf-direct-sec">Direct plans</a><a href="#mf-fpi-sec">vs foreign investors</a><a href="#mf-amc-sec">Fund houses</a><a href="#mf-nfo-sec">New funds</a><a href="#mf-inst-sec">FIIs &amp; DIIs</a><a href="#mf-src-sec">Sources &amp; checks</a></nav>
+    </section>
+    <section class="block">
+      <div class="block-head"><h2>What changed</h2><p class="muted small">Plain arithmetic on the published figures; no forecasts.</p></div>
+      <div class="panel"><ul class="mf-bul" id="mf-changed"></ul></div>
+    </section>
+    <section class="block" id="mf-where-sec">
+      <div class="block-head"><h2>Where the money went</h2><p class="muted small" id="mf-where-note"></p></div>
+      <div class="toolbar" id="mf-where-ctl"></div>
+      <div class="panel flush"><div class="scroll"><table class="tbl mf" id="tbl-mf-where"></table></div></div>
+    </section>
+    <section class="block" id="mf-map-sec">
+      <div class="block-head"><h2>Flow map: net inflows by category, month by month</h2><p class="muted small">Green is net money in, red net money out. Each row is shaded against its own biggest month, so you can see when a category was in or out of favour. Hover a cell for details.</p></div>
+      <div class="toolbar" id="mf-map-ctl"></div>
+      <div class="panel flush"><div class="scroll"><table class="tbl mf heat" id="tbl-mf-map"></table></div></div>
+    </section>
+    <section class="block" id="mf-sip-sec">
+      <div class="block-head"><h2>SIPs</h2><p class="muted small">Totals, SIP accounts and SIP assets from AMFI’s SIP data, out with its monthly report; the split by category from SEBI’s monthly table, which follows several weeks later.</p></div>
+      <div class="panel" id="mf-sip"></div>
+    </section>
+    <section class="grid2">
+      <div class="block" id="mf-mood-sec"><div class="block-head"><h2>Risk appetite</h2><p class="muted small">Where new equity money goes: small, mid and thematic funds against large and flexi caps.</p></div><div class="panel" id="mf-mood"></div></div>
+      <div class="block" id="mf-gains-sec"><div class="block-head"><h2>New money vs market gains</h2><p class="muted small">How much of the change in assets came from investors and how much from markets.</p></div><div class="panel" id="mf-gains"></div></div>
+    </section>
+    <section class="grid2">
+      <div class="block" id="mf-red-sec"><div class="block-head"><h2>Redemption pressure</h2><p class="muted small">How much investors take out each month, relative to what the funds hold.</p></div><div class="panel" id="mf-red"></div></div>
+      <div class="block" id="mf-folios-sec"><div class="block-head"><h2>New investors</h2><p class="muted small">Monthly change in investor folios by fund type.</p></div><div class="panel" id="mf-folios"></div></div>
+    </section>
+    <section class="grid2">
+      <div class="block" id="mf-direct-sec"><div class="block-head"><h2>How people buy: direct plans</h2><p class="muted small">Assets in direct plans by who placed the money (AMFI).</p></div><div class="panel" id="mf-direct"></div></div>
+      <div class="block" id="mf-fpi-sec"><div class="block-head"><h2>Mutual funds vs foreign investors</h2><p class="muted small">Domestic fund inflows against foreign portfolio flows into Indian equities.</p></div><div class="panel" id="mf-fpi"></div></div>
+    </section>
+    <section class="block" id="mf-amc-sec">
+      <div class="block-head"><h2>Fund houses</h2><p class="muted small">League table from AMFI’s quarterly average assets, with each house’s share of active equity assets.</p></div>
+      <div class="panel" id="mf-amc"></div>
+    </section>
+    <section class="block" id="mf-nfo-sec">
+      <div class="block-head"><h2>New fund offers</h2><p class="muted small">Money raised by new schemes (AMFI monthly report) and offers open now.</p></div>
+      <div class="panel" id="mf-nfo"></div>
+    </section>
+    <section class="block" id="mf-inst-sec">
+      <div class="block-head"><h2>FIIs and DIIs</h2><p class="muted small">Net buying of Indian equities by foreign and domestic institutions, day by day, month by month and year by year: the exchanges’ same-day figures (provisional), NSDL’s final figures for foreign portfolio investors, and SEBI’s figures for mutual funds.</p></div>
+      <div class="toolbar" id="mf-inst-ctl"></div>
+      <div class="panel" id="mf-inst"></div>
+    </section>
+    <section class="block" id="mf-src-sec">
+      <div class="block-head"><h2>Sources and checks</h2><p class="muted small">Every figure on this tab comes from these official sources. Click a row to see the checks behind it.</p></div>
+      <div class="panel flush"><div class="scroll"><table class="tbl" id="tbl-mf-src"></table></div></div>
+      <p class="muted small" id="mf-next"></p>
+      <details class="method">
+        <summary>How the numbers are built</summary>
+        <ul>
+          <li><b>Money in</b> is AMFI’s “funds mobilised”: purchases, SIP instalments, switch-ins and new fund offer money. <b>Money out</b> is redemptions and repurchases, including switch-outs. <b>Net inflow</b> = money in − money out.</li>
+          <li><b>SIPs</b>: the monthly total, SIP accounts (new, discontinued or matured, at month-end, and those that paid an instalment) and SIP assets come from AMFI’s SIP page, which is updated with its monthly data. A month is used only if its total is stated at least twice on the page and every statement agrees (the month-wise table, the accounts table, the page text), every financial-year total equals the sum of its months, and the figure is within ±25% of the month before (a guard against misreads). Account figures are used only if they add up to the year-to-date row and roll forward month to month (previous + new − discontinued = month-end). <b>Stoppage ratio</b> = SIPs discontinued or matured ÷ new SIPs. The split by category comes from SEBI’s monthly “Status of Mutual Fund Industry” table (from August 2026), several weeks later; its totals include domestic fund of funds and are compared with AMFI’s for every month both cover (see Sources &amp; checks). SEBI’s category amounts are shown only when they add up to its own total; account figures that don’t add up are shown as published and flagged.</li>
+          <li><b>Lumpsum &amp; other</b> = money in − SIP. It includes switch-ins, transfer plans and new fund offers, so it is not purely fresh lumpsum money.</li>
+          <li><b>Categories</b>: AMFI’s reports use SEBI’s revised scheme categories from August 2026 (for example value and contra, and sectoral and thematic, are now reported separately, index funds and ETFs are split by asset class, and life cycle funds are new). Long-run charts join old and new categories so each series continues.</li>
+          <li><b>Checks</b>: an AMFI month is used only if money in − money out = net for every category and the categories add up to every sub-total, section total and the grand total. It is then compared with SEBI’s copy of the same table (assets, folios and net flows by category). NSDL’s monthly foreign-investor figures are reconciled with NSDL’s financial-year table, and fund-house totals with AMFI’s monthly reports.</li>
+          <li><b>Timing</b>: AMFI’s report and SIP figures come out around the 10th of the following month (checked every hour from the 7th to the 16th, and every few hours otherwise); SEBI’s table follows weeks later; NSDL updates daily; SEBI’s fund trading data daily with a lag of a few days; fund-house data each quarter; direct-plan data monthly.</li>
+          <li><b>Folios</b> are accounts, not unique investors. <b>Average assets</b> (fund houses, direct plans) are monthly or quarterly averages; other asset figures are month-end.</li>
+          <li>For information only; not investment advice.</li>
+        </ul>
+      </details>
+    </section>
+  </div>
+</div>
+
+<div class="tab" id="tab-view" hidden>
+  <section class="block">
+    <div class="block-head">
+      <h2>Investment view</h2><p class="muted small" id="iv-asof">Where to put a large sum now, for 3–12 months and 3–5 years. Rules-based signals, not investment advice.</p>
+    </div>
+    <div class="ivcall" id="iv-call"></div>
+    <nav class="subnav" aria-label="Investment view sections"><a href="#iv-classes-sec">Asset classes</a><a href="#iv-countries-sec">Countries</a><a href="#iv-deploy-sec">Deploying</a><a href="#iv-priced-sec">Priced in</a><a href="#iv-scen-sec">Risks</a><a href="#iv-hedge-sec">Hedging</a><a href="#iv-changes-sec">Changes &amp; record</a></nav>
+  </section>
+  <section class="block" id="iv-classes-sec">
+    <div class="block-head"><h2>Asset classes — house view</h2><p class="muted small">Tactical = 3–12 months, strategic = 3–5 years. Weights start from a reference policy portfolio: each 3–5 year notch moves the target by half a step, each 3–12 month notch moves the model by a full step (10% of the sleeve, 0.5–3 points), and cash takes the other side. Click a row for every signal behind the call.</p></div>
+    <div class="panel flush"><div class="scroll"><table class="tbl ivt" id="tbl-classes"></table></div></div>
+  </section>
+  <section class="block" id="iv-countries-sec">
+    <div class="block-head"><h2>Equity markets — overweight, neutral, underweight</h2><p class="muted small">Ranked by the 3–12 month view. Tactical blends valuation (30%), earnings, trend, policy and currency (15% each) and IMF growth (10%). Strategic compares each market’s expected real return with world equities. Weights: MSCI ACWI (factsheet weights rolled forward with market moves); in the INR lens, 85% India and 15% the rest of the world.</p></div>
+    <div class="panel flush"><div class="scroll"><table class="tbl ivt" id="tbl-eqmk"></table></div></div>
+  </section>
+  <section class="grid2">
+    <div class="block" id="iv-deploy-sec"><div class="block-head"><h2>Deploying a large sum now</h2><p class="muted small">Pace by valuation, trend, stress and liquidity.</p></div><div class="panel" id="iv-deploy"></div></div>
+    <div class="block" id="iv-priced-sec"><div class="block-head"><h2>What markets are pricing</h2><p class="muted small">The expectations already in today’s prices — surprises against them move markets.</p></div><div class="panel" id="iv-priced"></div></div>
+  </section>
+  <section class="block" id="iv-scen-sec">
+    <div class="block-head"><h2>Biggest risks and scenarios</h2><p class="muted small">Alert levels count how many warning signals are on; they are not probabilities. “Held up / suffered” = average weekly return in comparable weeks since 2016.</p></div>
+    <div class="scen" id="iv-scen"></div>
+  </section>
+  <section class="grid2">
+    <div class="block" id="iv-hedge-sec"><div class="block-head"><h2>Currency hedging</h2><p class="muted small">Hedge carry from policy-rate gaps (BIS); real value from BIS real effective exchange rates.</p></div><div class="panel flush"><p class="pad" id="iv-hedge-home"></p><div class="scroll"><table class="tbl" id="tbl-hedge"></table></div></div></div>
+    <div class="block" id="iv-changes-sec"><div class="block-head"><h2>What changed and track record</h2></div><div class="panel" id="iv-changes"></div></div>
+  </section>
+  <section class="block" id="iv-limits-sec" hidden>
+    <div class="block-head"><h2>India: limits on investing abroad</h2><p class="muted small">These caps decide how much can actually go overseas. Check the latest SEBI and RBI circulars before acting.</p></div>
+    <div class="panel flush"><div class="scroll"><table class="tbl" id="tbl-limits"></table></div></div>
+    <div class="watch" id="iv-watch"></div>
+  </section>
+  <details class="method">
+    <summary>How the view is built</summary>
+    <ul>
+      <li><b>Scores</b> run from −1 to +1: ▲▲ strong overweight (≥0.45), ▲ overweight (≥0.15), ● neutral, ▼ underweight, ▼▼ strong underweight. Confidence is High when most signals agree and Low when they conflict or data is thin; thin evidence is capped at one notch.</li>
+      <li><b>Beyond-equity assets, tactical:</b> valuation 30% (real price vs 10-year history; income assets vs their 10-year trend; TIPS by real yield; credit by spreads), carry 20% (futures roll yield or yield over cash), trend 20% (12-month momentum and price vs 40-week average), macro fit 20% (exposure to today’s growth, inflation, liquidity, risk and dollar regime), positioning 10% (CFTC, contrarian at extremes).</li>
+      <li><b>Strategic:</b> expected 5-year real return from building blocks — equities: dividend yield + IMF trend growth − dilution (0.5% US, 1% other developed, 1.5% emerging) + half the gap back to normal valuation + real currency drift; bonds: yield − expected inflation (− credit losses); commodities: cash + roll yield (20% today’s, 80% a long-run −1%) + real-price drift; gold: 0.5% + real-price drift. Diversification counts 30% for beyond-equity assets.</li>
+      <li><b>Reference portfolios</b> (change in <code>lib/research-config.mjs</code>): USD — equities 55, Treasuries 18, IG 7, HY 3, EM debt 2, gold 3, commodities 2, REITs 2, infrastructure 2, private credit 2, TIPS 2, cash 2. INR — equities 60 (85% India), G-secs 15, corporate bonds 7, Treasuries 2, gold 7, Indian REITs 3, global REITs 1, commodities 1, cash 4.</li>
+      <li><b>Sources:</b> MSCI ACWI country weights (30 Oct 2026 factsheet, rolled forward weekly with each market’s price move), IMF World Economic Outlook (latest edition, from the IMF’s data API), BIS policy rates, CPI and real exchange rates, CFTC, US Treasury, NSE, Siblis Research, Yahoo Finance. Studies: Bernstein &amp; Arnott (2003) on dilution; Erb &amp; Harvey (2013) on gold; Vanguard (2012) on lump sums.</li>
+      <li><b>Limits:</b> free data has no forward earnings, credit spreads (unless a FRED key is set), fund flows, PMIs or private-market valuations. Listed proxies stand in for private credit and private equity. For information only; not investment advice.</li>
+    </ul>
+  </details>
+</div>
+
+<div class="tab" id="tab-calendar" hidden>
+  <section class="block">
+    <div class="block-head row">
+      <div><h2>Event calendar</h2><p class="muted small">Central bank decisions, data releases and market events, with India and the US covered most closely. Times are local and IST. Each event shows the latest reading it will update.</p></div>
+      <button class="btn ghost small" id="ics-all" type="button">Add all to calendar (.ics)</button>
+    </div>
+    <div class="toolbar">
+      <div class="seg" id="seg-cal-region"><button data-v="all" class="on">All</button><button data-v="IN">India</button><button data-v="US">US</button><button data-v="GL">Rest of world</button></div>
+      <div class="chips" id="cal-cats"></div>
+      <label class="check"><input type="checkbox" id="cal-high"> Market-moving only</label>
+      <div class="seg" id="seg-cal-range" aria-label="How far ahead"><button data-v="3" class="on">3 months</button><button data-v="6">6 months</button><button data-v="13">12 months</button></div>
+    </div>
+  </section>
+  <section class="block">
+    <div class="block-head"><h2>Next 7 days</h2></div>
+    <div class="nextgrid" id="cal-next"></div>
+  </section>
+  <section class="block">
+    <div class="block-head"><h2>Timeline</h2><p class="muted small"><span class="st official">Official</span> on the issuer’s own calendar, checked automatically · <span class="st scheduled">Scheduled</span> follows the issuer’s published rule · <span class="st estimated">Estimated</span> convention, not yet confirmed by the issuer</p></div>
+    <div class="panel flush"><div id="cal-list"></div></div>
+  </section>
+  <section class="block">
+    <div class="block-head"><h2>On the horizon — dates to be confirmed</h2></div>
+    <div class="panel flush"><div id="cal-horizon"></div></div>
+  </section>
+  <section class="block">
+    <div class="block-head"><h2>Where these dates come from</h2><p class="muted small" id="cal-src-note">Each source is re-checked automatically; Refresh re-checks anything older than an hour.</p></div>
+    <div class="panel flush"><div class="scroll"><table class="tbl" id="tbl-refsrc"></table></div></div>
+  </section>
+</div>
+
+  <details class="method">
+    <summary>Methodology &amp; sources</summary>
+    <ul>
+      <li><b>Regime lights</b>: each pillar averages simple, published rules (shown under each light), each scoring +1, 0 or −1. Above +0.33 is green, below −0.33 red. Rules use 3-month changes or levels against 10-year history so one noisy week does not flip the regime.</li>
+      <li><b>Percentiles and z-scores</b> use 10 years of weekly data (daily for Treasury yields, monthly for CPI and OECD indicators).</li>
+      <li><b>Live Indian PE</b>: NSE India's live index feed (PE, P/B, dividend yield on consolidated trailing earnings), read every 10 minutes in market hours on this public edition; every figure carries NSE's own time stamp. <b>History</b>: daily NSE valuation series via indexpe.in, with 7/10/15-year and full-history medians and percentiles.</li>
+      <li><b>Markets</b>: Yahoo Finance (indices, ETFs, FX, commodities, VIX, MOVE). <b>US yields</b>: US Treasury daily nominal and TIPS real par curves; breakevens and the 5y5y forward are computed from them. <b>CPI and policy rates</b>: Bank for International Settlements. <b>Fed balance sheet</b>: Federal Reserve H.4.1. <b>Leading indicators</b>: OECD via DBnomics. <b>FII/DII flows</b>: NSE.</li>
+      <li><b>Credit spreads, financial conditions and GDPNow</b> come from FRED. Add a free FRED API key as the repository secret <code>FRED_API_KEY</code> to switch them on. Until then, credit risk appetite uses the HYG/IEF ratio.</li>
+      <li><b>Global valuations</b>: ETF trailing PE (Yahoo) as a live proxy; Siblis Research month-end PE and Dec-21–Dec-25 year-ends for history. <b>ERP</b> = earnings yield − real 10-year yield (US: TIPS; India: 10-year G-sec − CPI).</li>
+      <li><b>Updated by hand</b>: Siblis month-end figures and the central bank calendar (lib/config.mjs, lib/events.mjs). The India 10-year yield is now live, with a hand-entered fallback in lib/macro-config.mjs. Dates are shown wherever these are used.</li>
+      <li>For information only; not investment advice.</li>
+    </ul>
+  </details>
+  <section class="block" id="data-status">
+    <div class="block-head"><h2>Data status</h2><p class="muted small" id="ds-note">Every feed on this site, how recent it is, and the checks run on it at the last update. Click a row for the checks.</p></div>
+    <div class="panel flush"><div class="scroll"><table class="tbl" id="tbl-ds"></table></div></div>
+    <p class="muted small" id="ds-prov"></p>
+    <details class="ds-owner" id="ds-owner" hidden>
+      <summary>Refresh button: read every source on demand (site owner)</summary>
+      <p class="muted small">Every source is read again automatically every 10 minutes in Indian market hours and every 30 minutes otherwise; the Refresh button then loads the newest data. To make Refresh read every source at once (about 2–4 minutes), save a GitHub token here: fine-grained, for this repository only, with the permission <b>Actions: Read and write</b>. It is kept only in this browser and sent only to GitHub.</p>
+      <form class="ds-token" id="ds-token-form" autocomplete="off">
+        <input type="password" id="ds-token" placeholder="github_pat_…" autocomplete="new-password" spellcheck="false" aria-label="GitHub token">
+        <button class="btn small" type="submit">Save</button>
+        <button class="btn ghost small" type="button" id="ds-token-clear">Remove</button>
+      </form>
+      <p class="small" id="ds-token-state" role="status"></p>
+    </details>
+  </section>
+</main>
+<footer class="foot muted small">Data: NSE India, indexpe.in, Yahoo Finance, US Treasury, BIS, Federal Reserve, OECD, Siblis Research, AMFI, SEBI, NSDL, FRED (optional). <span id="foot-src"></span></footer>
+
+<div id="tip" class="tip" role="tooltip"></div>
+<script src="vendor/d3.v7.9.0.min.js"></script>
+<script src="rules.js"></script>
+<script src="macro.js"></script>
+<script src="view.js"></script>
+<script src="invest.js"></script>
+<script src="mf.js"></script>
+<script>window.GMM_STATIC = { data: 'data/' };</script>
+<script src="app.js"></script>
+<script src="status.js"></script>
+</body>
+</html>
